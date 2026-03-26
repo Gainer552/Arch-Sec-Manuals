@@ -1,0 +1,55 @@
+**Bypassing Systemd Age Verification**
+
+Description of feature:
+ Field integrated into the existing JSON user records managed by systemd-userdbd. Depending on how your system is configured, these JSON records are typically found in the following locations:
+
+• /etc/userdb/: This is the primary directory for persistent, administrator-defined JSON user records.
+
+	○ Example path: /etc/userdb/username.user
+
+• /run/userdb/: Used for transient user records created during the current session.
+• ~/.identity: For systems using systemd-homed, the JSON record (including the birthDate field) is often embedded directly within the user's home directory image as an .identity file.
+
+The birthDate field is a new feature in systemd v261 (merged in March 2026). If you are running an older version, the field simply doesn't exist in your system's code yet.
+
+Check your systemd version
+
+Bash: systemctl --version
+
+Technical Details
+
+• Field Name: birthDate.
+• Format: The date is stored in a standardized YYYY-MM-DD format.
+• Permissions: The field is not self-modifiable; it can only be set or changed by a system administrator, typically using the homectl command.
+• Purpose: It provides a standardized data source for other components, such as xdg-desktop-portal, to signal age brackets to applications for parental controls or legal compliance without exposing the exact date to the apps themselves.
+
+How to check for the record
+
+userdbctl user [USERNAME]
+
+Example:
+
+{
+    "userName": "testuser",
+    "disposition": "regular",
+    "birthDate": "2000-01-01"
+}
+
+Methods for disabling/removing the feature
+
+1. If you want to ensure that no applications can even query for this data (even if it's empty), you can "mask" the services that handle the JSON user database. This is a common way for Arch users to "opt-out" entirely.
+
+Bash: sudo systemctl mask systemd-userdbd.service systemd-userdbd.socket
+
+2. Delete the line. If a JSON user record exists on your system (usually after moving to systemd-homed or manually creating one), you would find it in:
+
+• /etc/userdb/<username>.user
+• ~/.identity (if using encrypted home directories)
+
+You can simply open the file and remove the "birthDate": "YYYY-MM-DD" entry entirely.
+
+Optional Measures:
+
+1. Install a different bootloader, during the installation of Arch Linux.
+
+2. Set a "dummy" date (self-attestation). Systemd does not verify the date against government records; it relies entirely on what is entered by the administrator. If you find yourself on a system where an application requires this field to function, you can set it to a "dummy" date to preserve privacy.
